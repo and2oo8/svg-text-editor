@@ -62,7 +62,6 @@
             background: #94a3b8;
         }
 
-        /* Crop Handles Styles */
         .crop-handle {
             position: absolute;
             width: 10px;
@@ -107,7 +106,7 @@
     <!-- App Content Grid -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        <!-- LEFT COLUMN: EDITING PANEL -->
+        <!-- LEFT COLUMN: EDITING PANEL & AI PROMPT -->
         <section class="lg:col-span-5 flex flex-col gap-5">
             <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-white hover:bg-brand-50/30 rounded-2xl p-6 text-center transition cursor-pointer group relative overflow-hidden shadow-sm">
                 <input type="file" id="fileInput" accept=".svg" class="hidden">
@@ -120,6 +119,57 @@
                             <span class="text-brand-500 group-hover:underline">SVG-Datei auswählen</span> oder hierher ziehen
                         </p>
                         <p class="text-xs text-slate-400 mt-1">Nur .svg Dateien unterstützt</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KI ASSISTENT CARD (Im Seiten-Design angepasst) -->
+            <div class="bg-white border border-brand-200 rounded-2xl shadow-md p-5 flex flex-col gap-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-brand-500 text-sm"></i>
+                        <h2 class="font-bold text-xs tracking-wide uppercase text-slate-800">KI Text-Transformation</h2>
+                    </div>
+                    <button id="btnToggleAiConfig" class="text-[11px] text-slate-400 hover:text-slate-700 transition flex items-center gap-1">
+                        <i class="fa-solid fa-gear"></i> API-Key
+                    </button>
+                </div>
+
+                <!-- API Key Konfiguration (Aufklappbar) -->
+                <div id="aiConfigBox" class="hidden bg-brand-50/60 border border-brand-200 rounded-xl p-3 flex flex-col gap-2 text-xs">
+                    <div class="flex items-center justify-between font-semibold text-brand-900">
+                        <span>API-Anbieter Konfiguration:</span>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <select id="aiProviderSelect" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-brand-500">
+                            <option value="gemini">Google Gemini API (Empfohlen / Gratis-Tier)</option>
+                            <option value="openai">OpenAI API (GPT-4o-mini)</option>
+                        </select>
+                        <input type="password" id="aiApiKeyInput" placeholder="API-Key hier einfügen (AIzaSy... oder sk-...)" class="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 font-mono focus:outline-none focus:border-brand-500">
+                        <button id="btnSaveAiKey" class="w-full py-1.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-lg text-xs transition">
+                            Schlüssel speichern
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Prompt Eingabefeld -->
+                <div class="flex flex-col gap-2">
+                    <div class="relative">
+                        <input type="text" id="aiPromptInput" placeholder="z. B. Übersetze alle Texte ins Englische..." class="w-full pl-3 pr-24 py-2 bg-slate-50 border border-slate-200 focus:bg-white focus:border-brand-500 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none transition">
+                        <button id="btnRunAiPrompt" class="absolute right-1 top-1 bottom-1 px-3 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                            <i class="fa-solid fa-bolt"></i> Ausführen
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button class="ai-quick-btn px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-[10px] text-slate-600 rounded-lg border border-slate-200 transition" data-prompt="Übersetze alle Texte ins Englische.">
+                            🇬🇧 Ins Englische
+                        </button>
+                        <button class="ai-quick-btn px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-[10px] text-slate-600 rounded-lg border border-slate-200 transition" data-prompt="Formuliere alle Texte professioneller und prägnanter.">
+                            ✨ Professioneller
+                        </button>
+                        <button class="ai-quick-btn px-2 py-0.5 bg-slate-50 hover:bg-slate-100 text-[10px] text-slate-600 rounded-lg border border-slate-200 transition" data-prompt="Wandle alle Texte in GROSSBUCHSTABEN um.">
+                            🔤 GROSSBUCHSTABEN
+                        </button>
                     </div>
                 </div>
             </div>
@@ -138,7 +188,7 @@
                     <input type="text" id="searchInput" placeholder="Texte durchsuchen..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 focus:bg-white rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-500 transition">
                 </div>
 
-                <div id="textEditorList" class="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-1">
+                <div id="textEditorList" class="flex flex-col gap-3 max-h-[450px] overflow-y-auto pr-1">
                     <div class="text-center py-8 text-slate-400 text-xs italic">
                         Lade eine SVG-Datei hoch oder wähle ein Beispiel, um Texte zu bearbeiten.
                     </div>
@@ -150,7 +200,6 @@
         <section class="lg:col-span-7 flex flex-col gap-5 sticky top-20">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-md overflow-hidden flex flex-col">
                 
-                <!-- Preview Toolbar -->
                 <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center space-x-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -159,7 +208,6 @@
                     </div>
 
                     <div class="flex items-center space-x-3">
-                        <!-- Crop Mode Toggle Button -->
                         <button id="btnToggleCrop" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm transition flex items-center gap-1.5">
                             <i class="fa-solid fa-crop text-brand-500"></i> <span>Zuschneiden</span>
                         </button>
@@ -190,7 +238,6 @@
                     </div>
                 </div>
 
-                <!-- Crop Option Bar (Wird nur im Crop-Modus angezeigt) -->
                 <div id="cropControlsBar" class="hidden bg-brand-50/70 border-b border-brand-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div class="flex items-center space-x-2 font-semibold text-brand-900">
                         <i class="fa-solid fa-scissors text-brand-500"></i>
@@ -223,18 +270,12 @@
                     </div>
                 </div>
 
-                <!-- Preview Display Container -->
                 <div id="previewContainer" class="bg-checkerboard min-h-[420px] max-h-[580px] p-6 flex items-center justify-center overflow-hidden relative transition-colors duration-200 select-none cursor-grab">
-                    
-                    <!-- Transform Wrapper für Pan & Zoom (Beinhaltet SVG und Crop-Overlay) -->
                     <div id="svgWrapper" class="relative inline-block">
                         <div id="svgContainer" class="pointer-events-none"></div>
 
-                        <!-- Crop Box Overlay Layer -->
                         <div id="cropOverlay" class="absolute inset-0 overflow-hidden pointer-events-none hidden">
-                            <!-- Das zuschneidbare Rechteck mit Schatten nach außen -->
                             <div id="cropBox" class="absolute border-2 border-brand-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.45)] pointer-events-auto cursor-move">
-                                <!-- 8 Resize Handles -->
                                 <div class="crop-handle -top-1.5 -left-1.5 cursor-nwse-resize" data-handle="nw"></div>
                                 <div class="crop-handle -top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize" data-handle="n"></div>
                                 <div class="crop-handle -top-1.5 -right-1.5 cursor-nesw-resize" data-handle="ne"></div>
@@ -246,13 +287,10 @@
                             </div>
                         </div>
                     </div>
-
                 </div>
 
-                <!-- Actions Footer -->
                 <div class="bg-slate-50 border-t border-slate-200 p-4 flex flex-col gap-3">
                     
-                    <!-- Inline Statusleiste -->
                     <div id="actionStatusBanner" class="hidden transition-all duration-200 rounded-xl px-3.5 py-2 text-xs font-semibold flex items-center justify-between border shadow-sm">
                         <div class="flex items-center space-x-2">
                             <i id="actionStatusIcon" class="fa-solid text-base"></i>
@@ -403,6 +441,14 @@
         const svgDimensions = document.getElementById('svgDimensions');
         const previewContainer = document.getElementById('previewContainer');
 
+        const btnToggleAiConfig = document.getElementById('btnToggleAiConfig');
+        const aiConfigBox = document.getElementById('aiConfigBox');
+        const aiProviderSelect = document.getElementById('aiProviderSelect');
+        const aiApiKeyInput = document.getElementById('aiApiKeyInput');
+        const btnSaveAiKey = document.getElementById('btnSaveAiKey');
+        const aiPromptInput = document.getElementById('aiPromptInput');
+        const btnRunAiPrompt = document.getElementById('btnRunAiPrompt');
+
         const btnToggleCrop = document.getElementById('btnToggleCrop');
         const cropControlsBar = document.getElementById('cropControlsBar');
         const cropOverlay = document.getElementById('cropOverlay');
@@ -446,23 +492,26 @@
             setupEventListeners();
             setupPanAndZoom();
             setupCropInteractions();
+            initAiConfig();
         });
 
         function getToken() {
-            try {
-                return localStorage.getItem('github_gist_token') || storedTokenMemory;
-            } catch (e) {
-                return storedTokenMemory;
-            }
+            try { return localStorage.getItem('github_gist_token') || storedTokenMemory; } 
+            catch (e) { return storedTokenMemory; }
         }
 
         function setToken(val) {
             storedTokenMemory = val;
+            try { localStorage.setItem('github_gist_token', val); } catch (e) {}
+        }
+
+        function initAiConfig() {
             try {
-                localStorage.setItem('github_gist_token', val);
-            } catch (e) {
-                console.warn('localStorage in Iframe nicht verfügbar');
-            }
+                const key = localStorage.getItem('ai_api_key');
+                const provider = localStorage.getItem('ai_provider') || 'gemini';
+                if (key) aiApiKeyInput.value = key;
+                aiProviderSelect.value = provider;
+            } catch (e) {}
         }
 
         function setupEventListeners() {
@@ -477,20 +526,42 @@
             dropzone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropzone.classList.remove('border-brand-500', 'bg-brand-50/50');
-                if (e.dataTransfer.files.length > 0) {
-                    handleFile(e.dataTransfer.files[0]);
-                }
+                if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
             });
             fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    handleFile(e.target.files[0]);
-                }
+                if (e.target.files.length > 0) handleFile(e.target.files[0]);
             });
 
             btnSample1.addEventListener('click', () => loadSvgString(SAMPLE_SVG_1));
             btnSample2.addEventListener('click', () => loadSvgString(SAMPLE_SVG_2));
 
             searchInput.addEventListener('input', filterTextElements);
+
+            btnToggleAiConfig.addEventListener('click', () => {
+                aiConfigBox.classList.toggle('hidden');
+            });
+
+            btnSaveAiKey.addEventListener('click', () => {
+                const key = aiApiKeyInput.value.trim();
+                const provider = aiProviderSelect.value;
+                try {
+                    localStorage.setItem('ai_api_key', key);
+                    localStorage.setItem('ai_provider', provider);
+                    showStatus('KI-Schlüssel gespeichert', 'success');
+                    aiConfigBox.classList.add('hidden');
+                } catch (e) {
+                    showStatus('Fehler beim Speichern des Schlüssels', 'error');
+                }
+            });
+
+            btnRunAiPrompt.addEventListener('click', runAiTransformation);
+
+            document.querySelectorAll('.ai-quick-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    aiPromptInput.value = e.target.getAttribute('data-prompt');
+                    runAiTransformation();
+                });
+            });
 
             btnBgChecker.addEventListener('click', () => setBackground('checkerboard'));
             btnBgDark.addEventListener('click', () => setBackground('dark'));
@@ -559,7 +630,167 @@
             btnDownloadPng.addEventListener('click', downloadPng);
         }
 
-        // Pan & Zoom Logik
+        // KI LOGIK FÜR AUTOMATISCHE TEXT-TRANSFORMATION
+        async function runAiTransformation() {
+            const userPrompt = aiPromptInput.value.trim();
+            if (!userPrompt) {
+                showStatus('Bitte gib eine KI-Anweisung ein', 'error');
+                return;
+            }
+
+            const apiKey = aiApiKeyInput.value.trim() || localStorage.getItem('ai_api_key');
+            const provider = aiProviderSelect.value || localStorage.getItem('ai_provider') || 'gemini';
+
+            if (!apiKey) {
+                aiConfigBox.classList.remove('hidden');
+                showStatus('Bitte trage zuerst deinen API-Schlüssel ein', 'error');
+                return;
+            }
+
+            if (textElementsMap.length === 0) {
+                showStatus('Keine Texte im SVG zum Transformieren vorhanden', 'error');
+                return;
+            }
+
+            const textPayload = {};
+            textElementsMap.forEach(item => {
+                textPayload[item.editorId] = item.currentText;
+            });
+
+            showStatus('KI verarbeitet Texte...', 'info');
+            btnRunAiPrompt.disabled = true;
+            btnRunAiPrompt.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Lade...';
+
+            try {
+                let updatedPayload = null;
+
+                if (provider === 'gemini') {
+                    updatedPayload = await callGeminiApi(apiKey, userPrompt, textPayload);
+                } else {
+                    updatedPayload = await callOpenAiApi(apiKey, userPrompt, textPayload);
+                }
+
+                if (updatedPayload) {
+                    let updatedCount = 0;
+                    Object.keys(updatedPayload).forEach(editorId => {
+                        const newText = updatedPayload[editorId];
+                        if (newText !== undefined) {
+                            updateTextLive(editorId, newText);
+                            const inputEl = document.getElementById(`input-${editorId}`);
+                            if (inputEl) inputEl.value = newText;
+                            updatedCount++;
+                        }
+                    });
+
+                    showStatus(`KI-Transformation abgeschlossen (${updatedCount} Texte angepasst)`, 'success');
+                }
+
+            } catch (err) {
+                console.error(err);
+                showStatus('KI-Fehler: ' + (err.message || 'Verbindung fehlgeschlagen'), 'error');
+            } finally {
+                btnRunAiPrompt.disabled = false;
+                btnRunAiPrompt.innerHTML = '<i class="fa-solid fa-bolt"></i> Ausführen';
+            }
+        }
+
+async function callGeminiApi(apiKey, prompt, payload) {
+    const systemInstruction = `Du bist ein automatischer SVG-Textübersetzer und Editor. 
+Du erhältst ein JSON-Objekt mit IDs und Texten. 
+Führe folgende Anweisung auf allen Werten des Objekts aus: "${prompt}".
+Wichtig: Gib AUSSCHLIESSLICH ein gültiges JSON-Objekt im exakt gleichen Format zurück. Verändere niemals die IDs (Schlüssel)!`;
+
+    // Liste der Modelle mit automatischem Fallback
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
+    let lastError = null;
+
+    for (const modelName of modelsToTry) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{ text: systemInstruction + "\n\nHier ist das JSON-Objekt:\n" + JSON.stringify(payload) }]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+                const data = await res.json();
+                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                return JSON.parse(responseText);
+            }
+
+            const errData = await res.json().catch(() => ({}));
+            const errMsg = errData.error?.message || `HTTP ${res.status}`;
+
+            // Bei temporärer Überlastung (503/429/high demand) das nächste Modell versuchen
+            if (res.status === 503 || res.status === 429 || errMsg.includes('high demand') || errMsg.includes('demand')) {
+                lastError = new Error(errMsg);
+                continue;
+            }
+
+            throw new Error(errMsg);
+
+        } catch (err) {
+            clearTimeout(timeoutId);
+            if (err.name === 'AbortError') {
+                lastError = new Error('Zeitüberschreitung beim Aufruf der KI-Schnittstelle.');
+                continue;
+            }
+            lastError = err;
+        }
+    }
+
+    throw lastError || new Error('Keines der verfügbaren KI-Modelle konnte die Anfrage verarbeiten.');
+}
+
+        async function callOpenAiApi(apiKey, prompt, payload) {
+            const url = 'https://api.openai.com/v1/chat/completions';
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    response_format: { type: "json_object" },
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `Du bist ein SVG-Textübersetzer. Führe folgende Anweisung auf den Texten des JSON-Objekts aus: "${prompt}". Gib ausschließlich ein valides JSON mit identischen Schlüsseln zurück.`
+                        },
+                        {
+                            role: 'user',
+                            content: JSON.stringify(payload)
+                        }
+                    ]
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            const responseText = data.choices?.[0]?.message?.content;
+            return JSON.parse(responseText);
+        }
+
         function setupPanAndZoom() {
             previewContainer.addEventListener('mousedown', (e) => {
                 if (e.button !== 0 || isDraggingCrop) return;
@@ -607,7 +838,6 @@
             applyTransform();
         }
 
-        // Crop Modus Logik & Interaktion
         function toggleCropMode() {
             isCropActive = !isCropActive;
             if (isCropActive) {
@@ -650,13 +880,11 @@
                 const deltaY = (e.clientY - startCropMouse.y) / currentZoom;
 
                 if (!activeCropHandle) {
-                    // Verschieben des gesamten Crop-Rahmens
                     let newX = Math.max(originalSvgBounds.x, Math.min(originalSvgBounds.x + originalSvgBounds.w - startCropRect.w, startCropRect.x + deltaX));
                     let newY = Math.max(originalSvgBounds.y, Math.min(originalSvgBounds.y + originalSvgBounds.h - startCropRect.h, startCropRect.y + deltaY));
                     cropRect.x = Math.round(newX);
                     cropRect.y = Math.round(newY);
                 } else {
-                    // Skalieren über Kanten/Ecken
                     let newX = startCropRect.x;
                     let newY = startCropRect.y;
                     let newW = startCropRect.w;
@@ -699,7 +927,6 @@
         }
 
         function updateCropUI() {
-            // Relativ zur Ursprungsgröße berechnen
             const leftPct = ((cropRect.x - originalSvgBounds.x) / originalSvgBounds.w) * 100;
             const topPct = ((cropRect.y - originalSvgBounds.y) / originalSvgBounds.h) * 100;
             const widthPct = (cropRect.w / originalSvgBounds.w) * 100;
@@ -866,19 +1093,13 @@
 
         function updateTextLive(editorId, newValue) {
             const targetNode = currentSvgDoc.querySelector(`[data-svg-editor-id="${editorId}"]`);
-            if (targetNode) {
-                targetNode.textContent = newValue;
-            }
+            if (targetNode) targetNode.textContent = newValue;
 
             const previewNode = svgContainer.querySelector(`[data-svg-editor-id="${editorId}"]`);
-            if (previewNode) {
-                previewNode.textContent = newValue;
-            }
+            if (previewNode) previewNode.textContent = newValue;
 
             const item = textElementsMap.find(t => t.editorId === editorId);
-            if (item) {
-                item.currentText = newValue;
-            }
+            if (item) item.currentText = newValue;
         }
 
         function filterTextElements() {
@@ -897,7 +1118,6 @@
 
         function setBackground(mode) {
             previewContainer.className = 'min-h-[420px] max-h-[580px] p-6 flex items-center justify-center overflow-hidden relative transition-colors duration-200 select-none cursor-grab ';
-            
             btnBgChecker.className = 'px-2 py-1 text-xs rounded text-slate-500 hover:text-slate-800 transition';
             btnBgDark.className = 'px-2 py-1 text-xs rounded text-slate-500 hover:text-slate-800 transition';
             btnBgLight.className = 'px-2 py-1 text-xs rounded text-slate-500 hover:text-slate-800 transition';
@@ -919,7 +1139,6 @@
             const tagged = clone.querySelectorAll('[data-svg-editor-id]');
             tagged.forEach(el => el.removeAttribute('data-svg-editor-id'));
 
-            // Wenn Zuschneiden aktiv ist, ViewBox anpassen
             if (isCropActive) {
                 clone.setAttribute('viewBox', `${cropRect.x} ${cropRect.y} ${cropRect.w} ${cropRect.h}`);
                 clone.setAttribute('width', `${cropRect.w}px`);
@@ -939,9 +1158,7 @@
                 try {
                     await navigator.clipboard.writeText(text);
                     return true;
-                } catch (err) {
-                    console.warn('Clipboard API blockiert, nutze Fallback', err);
-                }
+                } catch (err) {}
             }
 
             const textArea = document.createElement('textarea');
@@ -955,11 +1172,7 @@
             textArea.setSelectionRange(0, 99999);
 
             let success = false;
-            try {
-                success = document.execCommand('copy');
-            } catch (err) {
-                console.error('execCommand copy fehlgeschlagen', err);
-            }
+            try { success = document.execCommand('copy'); } catch (err) {}
             document.body.removeChild(textArea);
             return success;
         }
@@ -995,7 +1208,6 @@
             }
 
             showStatus('Erstelle Cloud-Link...', 'info');
-
             const xmlString = getCleanSvgString();
 
             try {
@@ -1009,11 +1221,7 @@
                     body: JSON.stringify({
                         "description": "valucon SVG Export",
                         "public": false,
-                        "files": {
-                            "graphic.svg": {
-                                "content": xmlString
-                            }
-                        }
+                        "files": { "graphic.svg": { "content": xmlString } }
                     })
                 });
 
@@ -1033,17 +1241,13 @@
 
                 cloudLinkInput.value = rawUrl;
                 cloudLinkContainer.classList.remove('hidden');
-
                 cloudLinkInput.select();
                 cloudLinkInput.setSelectionRange(0, 99999);
 
                 const ok = await copyTextToClipboard(rawUrl);
                 triggerButtonFeedback(btnCreateLink, '<i class="fa-solid fa-check"></i> Erstellt &amp; kopiert!');
-                if (ok) {
-                    showStatus('Cloud-Link erstellt & kopiert!', 'success');
-                } else {
-                    showStatus('Cloud-Link erstellt (siehe Feld unten)', 'info');
-                }
+                if (ok) showStatus('Cloud-Link erstellt & kopiert!', 'success');
+                else showStatus('Cloud-Link erstellt (siehe Feld unten)', 'info');
 
             } catch (err) {
                 console.error(err);
@@ -1078,7 +1282,7 @@
                 const canvas = document.getElementById('exportCanvas');
                 const ctx = canvas.getContext('2d');
 
-                const scale = 2; // HD Export Faktor
+                const scale = 2;
                 const exportWidth = isCropActive ? cropRect.w : originalSvgBounds.w;
                 const exportHeight = isCropActive ? cropRect.h : originalSvgBounds.h;
 
@@ -1115,7 +1319,6 @@
 
         function showStatus(message, type = 'success') {
             actionStatusBanner.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-900', 'bg-rose-50', 'border-rose-200', 'text-rose-900', 'bg-sky-50', 'border-sky-200', 'text-sky-900');
-            
             actionStatusMessage.textContent = message;
 
             if (type === 'error') {
