@@ -61,6 +61,18 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
+        /* Crop Handles Styles */
+        .crop-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #8c2230;
+            border: 2px solid #ffffff;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-full flex flex-col overflow-x-hidden antialiased">
@@ -95,6 +107,7 @@
     <!-- App Content Grid -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
+        <!-- LEFT COLUMN: EDITING PANEL -->
         <section class="lg:col-span-5 flex flex-col gap-5">
             <div id="dropzone" class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-white hover:bg-brand-50/30 rounded-2xl p-6 text-center transition cursor-pointer group relative overflow-hidden shadow-sm">
                 <input type="file" id="fileInput" accept=".svg" class="hidden">
@@ -133,8 +146,11 @@
             </div>
         </section>
 
+        <!-- RIGHT COLUMN: PREVIEW & EXPORT -->
         <section class="lg:col-span-7 flex flex-col gap-5 sticky top-20">
             <div class="bg-white border border-slate-200 rounded-2xl shadow-md overflow-hidden flex flex-col">
+                
+                <!-- Preview Toolbar -->
                 <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center space-x-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -143,6 +159,11 @@
                     </div>
 
                     <div class="flex items-center space-x-3">
+                        <!-- Crop Mode Toggle Button -->
+                        <button id="btnToggleCrop" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-crop text-brand-500"></i> <span>Zuschneiden</span>
+                        </button>
+
                         <div class="flex items-center bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                             <button id="bgChecker" title="Transparent" class="px-2 py-1 text-xs rounded bg-brand-500 text-white font-medium transition">
                                 <i class="fa-solid fa-border-all"></i>
@@ -169,14 +190,69 @@
                     </div>
                 </div>
 
-                <!-- Interaktiver Vorschau-Container mit Pan & Zoom Unterstützung -->
-                <div id="previewContainer" class="bg-checkerboard min-h-[420px] max-h-[580px] p-6 flex items-center justify-center overflow-hidden relative transition-colors duration-200 select-none cursor-grab">
-                    <div id="svgContainer" class="w-full h-full flex items-center justify-center max-w-full pointer-events-none"></div>
+                <!-- Crop Option Bar (Wird nur im Crop-Modus angezeigt) -->
+                <div id="cropControlsBar" class="hidden bg-brand-50/70 border-b border-brand-200 px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center space-x-2 font-semibold text-brand-900">
+                        <i class="fa-solid fa-scissors text-brand-500"></i>
+                        <span>Ausschnitt festlegen:</span>
+                    </div>
+
+                    <div class="flex items-center space-x-3 font-mono">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-slate-500 text-[11px]">X:</span>
+                            <input type="number" id="cropInputX" class="w-14 px-1.5 py-0.5 bg-white border border-brand-200 rounded text-center text-xs focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-slate-500 text-[11px]">Y:</span>
+                            <input type="number" id="cropInputY" class="w-14 px-1.5 py-0.5 bg-white border border-brand-200 rounded text-center text-xs focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-slate-500 text-[11px]">B:</span>
+                            <input type="number" id="cropInputW" class="w-16 px-1.5 py-0.5 bg-white border border-brand-200 rounded text-center text-xs focus:outline-none focus:border-brand-500">
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-slate-500 text-[11px]">H:</span>
+                            <input type="number" id="cropInputH" class="w-16 px-1.5 py-0.5 bg-white border border-brand-200 rounded text-center text-xs focus:outline-none focus:border-brand-500">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button id="btnCropFull" class="px-2.5 py-1 text-[11px] font-semibold bg-white hover:bg-slate-100 text-slate-700 rounded border border-slate-200 transition">
+                            Ganze Grafik
+                        </button>
+                    </div>
                 </div>
 
+                <!-- Preview Display Container -->
+                <div id="previewContainer" class="bg-checkerboard min-h-[420px] max-h-[580px] p-6 flex items-center justify-center overflow-hidden relative transition-colors duration-200 select-none cursor-grab">
+                    
+                    <!-- Transform Wrapper für Pan & Zoom (Beinhaltet SVG und Crop-Overlay) -->
+                    <div id="svgWrapper" class="relative inline-block">
+                        <div id="svgContainer" class="pointer-events-none"></div>
+
+                        <!-- Crop Box Overlay Layer -->
+                        <div id="cropOverlay" class="absolute inset-0 overflow-hidden pointer-events-none hidden">
+                            <!-- Das zuschneidbare Rechteck mit Schatten nach außen -->
+                            <div id="cropBox" class="absolute border-2 border-brand-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.45)] pointer-events-auto cursor-move">
+                                <!-- 8 Resize Handles -->
+                                <div class="crop-handle -top-1.5 -left-1.5 cursor-nwse-resize" data-handle="nw"></div>
+                                <div class="crop-handle -top-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize" data-handle="n"></div>
+                                <div class="crop-handle -top-1.5 -right-1.5 cursor-nesw-resize" data-handle="ne"></div>
+                                <div class="crop-handle top-1/2 -translate-y-1/2 -right-1.5 cursor-ew-resize" data-handle="e"></div>
+                                <div class="crop-handle -bottom-1.5 -right-1.5 cursor-nwse-resize" data-handle="se"></div>
+                                <div class="crop-handle -bottom-1.5 left-1/2 -translate-x-1/2 cursor-ns-resize" data-handle="s"></div>
+                                <div class="crop-handle -bottom-1.5 -left-1.5 cursor-nesw-resize" data-handle="sw"></div>
+                                <div class="crop-handle top-1/2 -translate-y-1/2 -left-1.5 cursor-ew-resize" data-handle="w"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Actions Footer -->
                 <div class="bg-slate-50 border-t border-slate-200 p-4 flex flex-col gap-3">
                     
-                    <!-- Dynamische Inline-Statusmeldung (Immer im Blickfeld der Interaktion) -->
+                    <!-- Inline Statusleiste -->
                     <div id="actionStatusBanner" class="hidden transition-all duration-200 rounded-xl px-3.5 py-2 text-xs font-semibold flex items-center justify-between border shadow-sm">
                         <div class="flex items-center space-x-2">
                             <i id="actionStatusIcon" class="fa-solid text-base"></i>
@@ -304,18 +380,38 @@
         let currentZoom = 1;
         let panX = 0;
         let panY = 0;
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
+        let isDraggingPan = false;
+        let startPanX = 0;
+        let startPanY = 0;
+
+        // Crop Zustand
+        let isCropActive = false;
+        let originalSvgBounds = { x: 0, y: 0, w: 800, h: 500 };
+        let cropRect = { x: 0, y: 0, w: 800, h: 500 };
+        let isDraggingCrop = false;
+        let activeCropHandle = null;
+        let startCropMouse = { x: 0, y: 0 };
+        let startCropRect = { x: 0, y: 0, w: 0, h: 0 };
 
         const dropzone = document.getElementById('dropzone');
         const fileInput = document.getElementById('fileInput');
+        const svgWrapper = document.getElementById('svgWrapper');
         const svgContainer = document.getElementById('svgContainer');
         const textEditorList = document.getElementById('textEditorList');
         const textCountBadge = document.getElementById('textCountBadge');
         const searchInput = document.getElementById('searchInput');
         const svgDimensions = document.getElementById('svgDimensions');
         const previewContainer = document.getElementById('previewContainer');
+
+        const btnToggleCrop = document.getElementById('btnToggleCrop');
+        const cropControlsBar = document.getElementById('cropControlsBar');
+        const cropOverlay = document.getElementById('cropOverlay');
+        const cropBox = document.getElementById('cropBox');
+        const cropInputX = document.getElementById('cropInputX');
+        const cropInputY = document.getElementById('cropInputY');
+        const cropInputW = document.getElementById('cropInputW');
+        const cropInputH = document.getElementById('cropInputH');
+        const btnCropFull = document.getElementById('btnCropFull');
 
         const actionStatusBanner = document.getElementById('actionStatusBanner');
         const actionStatusIcon = document.getElementById('actionStatusIcon');
@@ -349,6 +445,7 @@
             loadSvgString(SAMPLE_SVG_1);
             setupEventListeners();
             setupPanAndZoom();
+            setupCropInteractions();
         });
 
         function getToken() {
@@ -412,6 +509,13 @@
                 showStatus('Ansicht zurückgesetzt', 'info');
             });
 
+            btnToggleCrop.addEventListener('click', toggleCropMode);
+            btnCropFull.addEventListener('click', resetCropToFull);
+
+            [cropInputX, cropInputY, cropInputW, cropInputH].forEach(input => {
+                input.addEventListener('change', updateCropFromInputs);
+            });
+
             btnCopyCode.addEventListener('click', copySvgCode);
             btnCreateLink.addEventListener('click', handleCreateLinkClick);
 
@@ -455,27 +559,28 @@
             btnDownloadPng.addEventListener('click', downloadPng);
         }
 
+        // Pan & Zoom Logik
         function setupPanAndZoom() {
             previewContainer.addEventListener('mousedown', (e) => {
-                if (e.button !== 0) return;
-                isDragging = true;
-                startX = e.clientX - panX;
-                startY = e.clientY - panY;
+                if (e.button !== 0 || isDraggingCrop) return;
+                isDraggingPan = true;
+                startPanX = e.clientX - panX;
+                startPanY = e.clientY - panY;
                 previewContainer.classList.remove('cursor-grab');
                 previewContainer.classList.add('cursor-grabbing');
             });
 
             window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
+                if (!isDraggingPan) return;
                 e.preventDefault();
-                panX = e.clientX - startX;
-                panY = e.clientY - startY;
+                panX = e.clientX - startPanX;
+                panY = e.clientY - startPanY;
                 applyTransform();
             });
 
             window.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
+                if (isDraggingPan) {
+                    isDraggingPan = false;
                     previewContainer.classList.remove('cursor-grabbing');
                     previewContainer.classList.add('cursor-grab');
                 }
@@ -490,12 +595,9 @@
         }
 
         function applyTransform() {
-            const svg = svgContainer.querySelector('svg');
-            if (svg) {
-                svg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
-                svg.style.transformOrigin = 'center center';
-                svg.style.transition = isDragging ? 'none' : 'transform 0.1s ease-out';
-            }
+            svgWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+            svgWrapper.style.transformOrigin = 'center center';
+            svgWrapper.style.transition = isDraggingPan ? 'none' : 'transform 0.1s ease-out';
         }
 
         function resetView() {
@@ -503,6 +605,125 @@
             panX = 0;
             panY = 0;
             applyTransform();
+        }
+
+        // Crop Modus Logik & Interaktion
+        function toggleCropMode() {
+            isCropActive = !isCropActive;
+            if (isCropActive) {
+                btnToggleCrop.classList.remove('bg-white', 'text-slate-700');
+                btnToggleCrop.classList.add('bg-brand-500', 'text-white', 'border-brand-600');
+                cropControlsBar.classList.remove('hidden');
+                cropOverlay.classList.remove('hidden');
+                updateCropUI();
+                showStatus('Zuschneide-Modus aktiviert', 'info');
+            } else {
+                btnToggleCrop.classList.remove('bg-brand-500', 'text-white', 'border-brand-600');
+                btnToggleCrop.classList.add('bg-white', 'text-slate-700');
+                cropControlsBar.classList.add('hidden');
+                cropOverlay.classList.add('hidden');
+                showStatus('Zuschneide-Modus deaktiviert', 'info');
+            }
+        }
+
+        function resetCropToFull() {
+            cropRect = { ...originalSvgBounds };
+            updateCropUI();
+        }
+
+        function setupCropInteractions() {
+            cropBox.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                if (e.button !== 0) return;
+
+                isDraggingCrop = true;
+                activeCropHandle = e.target.getAttribute('data-handle');
+                startCropMouse = { x: e.clientX, y: e.clientY };
+                startCropRect = { ...cropRect };
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDraggingCrop) return;
+                e.preventDefault();
+
+                const deltaX = (e.clientX - startCropMouse.x) / currentZoom;
+                const deltaY = (e.clientY - startCropMouse.y) / currentZoom;
+
+                if (!activeCropHandle) {
+                    // Verschieben des gesamten Crop-Rahmens
+                    let newX = Math.max(originalSvgBounds.x, Math.min(originalSvgBounds.x + originalSvgBounds.w - startCropRect.w, startCropRect.x + deltaX));
+                    let newY = Math.max(originalSvgBounds.y, Math.min(originalSvgBounds.y + originalSvgBounds.h - startCropRect.h, startCropRect.y + deltaY));
+                    cropRect.x = Math.round(newX);
+                    cropRect.y = Math.round(newY);
+                } else {
+                    // Skalieren über Kanten/Ecken
+                    let newX = startCropRect.x;
+                    let newY = startCropRect.y;
+                    let newW = startCropRect.w;
+                    let newH = startCropRect.h;
+
+                    if (activeCropHandle.includes('e')) newW = Math.max(20, startCropRect.w + deltaX);
+                    if (activeCropHandle.includes('s')) newH = Math.max(20, startCropRect.h + deltaY);
+                    if (activeCropHandle.includes('w')) {
+                        const possibleW = startCropRect.w - deltaX;
+                        if (possibleW > 20) {
+                            newX = startCropRect.x + deltaX;
+                            newW = possibleW;
+                        }
+                    }
+                    if (activeCropHandle.includes('n')) {
+                        const possibleH = startCropRect.h - deltaY;
+                        if (possibleH > 20) {
+                            newY = startCropRect.y + deltaY;
+                            newH = possibleH;
+                        }
+                    }
+
+                    cropRect = {
+                        x: Math.round(newX),
+                        y: Math.round(newY),
+                        w: Math.round(newW),
+                        h: Math.round(newH)
+                    };
+                }
+
+                updateCropUI();
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (isDraggingCrop) {
+                    isDraggingCrop = false;
+                    activeCropHandle = null;
+                }
+            });
+        }
+
+        function updateCropUI() {
+            // Relativ zur Ursprungsgröße berechnen
+            const leftPct = ((cropRect.x - originalSvgBounds.x) / originalSvgBounds.w) * 100;
+            const topPct = ((cropRect.y - originalSvgBounds.y) / originalSvgBounds.h) * 100;
+            const widthPct = (cropRect.w / originalSvgBounds.w) * 100;
+            const heightPct = (cropRect.h / originalSvgBounds.h) * 100;
+
+            cropBox.style.left = `${leftPct}%`;
+            cropBox.style.top = `${topPct}%`;
+            cropBox.style.width = `${widthPct}%`;
+            cropBox.style.height = `${heightPct}%`;
+
+            cropInputX.value = cropRect.x;
+            cropInputY.value = cropRect.y;
+            cropInputW.value = cropRect.w;
+            cropInputH.value = cropRect.h;
+        }
+
+        function updateCropFromInputs() {
+            cropRect = {
+                x: parseInt(cropInputX.value) || 0,
+                y: parseInt(cropInputY.value) || 0,
+                w: Math.max(10, parseInt(cropInputW.value) || 100),
+                h: Math.max(10, parseInt(cropInputH.value) || 100)
+            };
+            updateCropUI();
         }
 
         function handleFile(file) {
@@ -532,6 +753,7 @@
                     return;
                 }
 
+                parseOriginalDimensions(currentSvgDoc);
                 analyzeTextElements(currentSvgDoc);
                 renderSvgPreview();
                 buildFormEditor();
@@ -543,6 +765,28 @@
                 console.error(err);
                 showStatus('Fehler beim Verarbeiten des SVGs', 'error');
             }
+        }
+
+        function parseOriginalDimensions(svgRoot) {
+            let viewBox = svgRoot.getAttribute('viewBox');
+            let w = 800, h = 500, x = 0, y = 0;
+
+            if (viewBox) {
+                const parts = viewBox.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+                if (parts.length === 4) {
+                    x = parts[0];
+                    y = parts[1];
+                    w = parts[2];
+                    h = parts[3];
+                }
+            } else {
+                w = parseFloat(svgRoot.getAttribute('width')) || 800;
+                h = parseFloat(svgRoot.getAttribute('height')) || 500;
+            }
+
+            originalSvgBounds = { x, y, w, h };
+            cropRect = { ...originalSvgBounds };
+            svgDimensions.textContent = `${w} × ${h}`;
         }
 
         function analyzeTextElements(svgRoot) {
@@ -578,22 +822,8 @@
 
         function renderSvgPreview() {
             svgContainer.innerHTML = '';
-            
             const svgClone = currentSvgDoc.cloneNode(true);
             svgContainer.appendChild(svgClone);
-
-            let viewBox = svgClone.getAttribute('viewBox');
-            let w = svgClone.getAttribute('width') || '100%';
-            let h = svgClone.getAttribute('height') || '100%';
-
-            if (viewBox) {
-                const parts = viewBox.split(/[\s,]+/).filter(Boolean);
-                if (parts.length === 4) {
-                    w = `${parts[2]}px`;
-                    h = `${parts[3]}px`;
-                }
-            }
-            svgDimensions.textContent = `${w} × ${h}`;
             applyTransform();
         }
 
@@ -688,6 +918,17 @@
             const clone = currentSvgDoc.cloneNode(true);
             const tagged = clone.querySelectorAll('[data-svg-editor-id]');
             tagged.forEach(el => el.removeAttribute('data-svg-editor-id'));
+
+            // Wenn Zuschneiden aktiv ist, ViewBox anpassen
+            if (isCropActive) {
+                clone.setAttribute('viewBox', `${cropRect.x} ${cropRect.y} ${cropRect.w} ${cropRect.h}`);
+                clone.setAttribute('width', `${cropRect.w}px`);
+                clone.setAttribute('height', `${cropRect.h}px`);
+            } else {
+                clone.setAttribute('viewBox', `${originalSvgBounds.x} ${originalSvgBounds.y} ${originalSvgBounds.w} ${originalSvgBounds.h}`);
+                clone.setAttribute('width', `${originalSvgBounds.w}px`);
+                clone.setAttribute('height', `${originalSvgBounds.h}px`);
+            }
 
             const serializer = new XMLSerializer();
             return '<?xml version="1.0" encoding="utf-8"?>\n' + serializer.serializeToString(clone);
@@ -817,7 +1058,7 @@
             
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'edited-graphic.svg';
+            a.download = isCropActive ? 'edited-graphic-cropped.svg' : 'edited-graphic.svg';
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -837,16 +1078,16 @@
                 const canvas = document.getElementById('exportCanvas');
                 const ctx = canvas.getContext('2d');
 
-                const scale = 2;
-                const width = img.width || 1000;
-                const height = img.height || 600;
+                const scale = 2; // HD Export Faktor
+                const exportWidth = isCropActive ? cropRect.w : originalSvgBounds.w;
+                const exportHeight = isCropActive ? cropRect.h : originalSvgBounds.h;
 
-                canvas.width = width * scale;
-                canvas.height = height * scale;
+                canvas.width = exportWidth * scale;
+                canvas.height = exportHeight * scale;
 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.scale(scale, scale);
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.drawImage(img, 0, 0, exportWidth, exportHeight);
 
                 URL.revokeObjectURL(url);
 
@@ -854,7 +1095,7 @@
                     const pngData = canvas.toDataURL('image/png');
                     const a = document.createElement('a');
                     a.href = pngData;
-                    a.download = 'edited-graphic.png';
+                    a.download = isCropActive ? 'edited-graphic-cropped.png' : 'edited-graphic.png';
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -872,7 +1113,6 @@
             img.src = url;
         }
 
-        // Inline Statusleiste direkt im Blickfeld über den Buttons
         function showStatus(message, type = 'success') {
             actionStatusBanner.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200', 'text-emerald-900', 'bg-rose-50', 'border-rose-200', 'text-rose-900', 'bg-sky-50', 'border-sky-200', 'text-sky-900');
             
@@ -890,7 +1130,6 @@
             }
         }
 
-        // Visuelles Feedback direkt auf dem angeklickten Button
         function triggerButtonFeedback(btn, temporaryHtml) {
             if (!btn) return;
             const originalHtml = btn.innerHTML;
