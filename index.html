@@ -123,7 +123,7 @@
                 </div>
             </div>
 
-            <!-- KI ASSISTENT CARD (Im Seiten-Design angepasst) -->
+            <!-- KI ASSISTENT CARD -->
             <div class="bg-white border border-brand-200 rounded-2xl shadow-md p-5 flex flex-col gap-3">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-2">
                     <div class="flex items-center space-x-2">
@@ -264,6 +264,9 @@
                     </div>
 
                     <div class="flex items-center space-x-2">
+                        <button id="btnCropContent" class="px-2.5 py-1 text-[11px] font-semibold bg-white hover:bg-slate-100 text-brand-500 rounded border border-brand-200 transition flex items-center gap-1">
+                            <i class="fa-solid fa-compress text-[10px]"></i> Inhalt anpassen
+                        </button>
                         <button id="btnCropFull" class="px-2.5 py-1 text-[11px] font-semibold bg-white hover:bg-slate-100 text-slate-700 rounded border border-slate-200 transition">
                             Ganze Grafik
                         </button>
@@ -413,6 +416,7 @@
         let currentSvgDoc = null;
         let textElementsMap = [];
         let storedTokenMemory = '';
+        let currentFileNameBase = 'zertifikat';
 
         // Pan & Zoom Zustand
         let currentZoom = 1;
@@ -457,6 +461,7 @@
         const cropInputY = document.getElementById('cropInputY');
         const cropInputW = document.getElementById('cropInputW');
         const cropInputH = document.getElementById('cropInputH');
+        const btnCropContent = document.getElementById('btnCropContent');
         const btnCropFull = document.getElementById('btnCropFull');
 
         const actionStatusBanner = document.getElementById('actionStatusBanner');
@@ -488,6 +493,7 @@
         const btnDownloadPng = document.getElementById('btnDownloadPng');
 
         window.addEventListener('DOMContentLoaded', () => {
+            currentFileNameBase = 'zertifikat';
             loadSvgString(SAMPLE_SVG_1);
             setupEventListeners();
             setupPanAndZoom();
@@ -532,8 +538,14 @@
                 if (e.target.files.length > 0) handleFile(e.target.files[0]);
             });
 
-            btnSample1.addEventListener('click', () => loadSvgString(SAMPLE_SVG_1));
-            btnSample2.addEventListener('click', () => loadSvgString(SAMPLE_SVG_2));
+            btnSample1.addEventListener('click', () => {
+                currentFileNameBase = 'zertifikat';
+                loadSvgString(SAMPLE_SVG_1);
+            });
+            btnSample2.addEventListener('click', () => {
+                currentFileNameBase = 'ui-mockup';
+                loadSvgString(SAMPLE_SVG_2);
+            });
 
             searchInput.addEventListener('input', filterTextElements);
 
@@ -581,6 +593,11 @@
             });
 
             btnToggleCrop.addEventListener('click', toggleCropMode);
+            btnCropContent.addEventListener('click', () => {
+                cropRect = getContentBBox();
+                updateCropUI();
+                showStatus('Zuschneidebereich auf sichtbaren Inhalt angepasst', 'info');
+            });
             btnCropFull.addEventListener('click', resetCropToFull);
 
             [cropInputX, cropInputY, cropInputW, cropInputH].forEach(input => {
@@ -694,67 +711,65 @@
             }
         }
 
-async function callGeminiApi(apiKey, prompt, payload) {
-    const systemInstruction = `Du bist ein automatischer SVG-Textübersetzer und Editor. 
+        async function callGeminiApi(apiKey, prompt, payload) {
+            const systemInstruction = `Du bist ein automatischer SVG-Textübersetzer und Editor. 
 Du erhältst ein JSON-Objekt mit IDs und Texten. 
 Führe folgende Anweisung auf allen Werten des Objekts aus: "${prompt}".
 Wichtig: Gib AUSSCHLIESSLICH ein gültiges JSON-Objekt im exakt gleichen Format zurück. Verändere niemals die IDs (Schlüssel)!`;
 
-    // Liste der Modelle mit automatischem Fallback
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
-    let lastError = null;
+            const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash'];
+            let lastError = null;
 
-    for (const modelName of modelsToTry) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+            for (const modelName of modelsToTry) {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: systemInstruction + "\n\nHier ist das JSON-Objekt:\n" + JSON.stringify(payload) }]
-                    }],
-                    generationConfig: {
-                        responseMimeType: "application/json"
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: controller.signal,
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: systemInstruction + "\n\nHier ist das JSON-Objekt:\n" + JSON.stringify(payload) }]
+                            }],
+                            generationConfig: {
+                                responseMimeType: "application/json"
+                            }
+                        })
+                    });
+
+                    clearTimeout(timeoutId);
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        return JSON.parse(responseText);
                     }
-                })
-            });
 
-            clearTimeout(timeoutId);
+                    const errData = await res.json().catch(() => ({}));
+                    const errMsg = errData.error?.message || `HTTP ${res.status}`;
 
-            if (res.ok) {
-                const data = await res.json();
-                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                return JSON.parse(responseText);
+                    if (res.status === 503 || res.status === 429 || errMsg.includes('high demand') || errMsg.includes('demand')) {
+                        lastError = new Error(errMsg);
+                        continue;
+                    }
+
+                    throw new Error(errMsg);
+
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    if (err.name === 'AbortError') {
+                        lastError = new Error('Zeitüberschreitung beim Aufruf der KI-Schnittstelle.');
+                        continue;
+                    }
+                    lastError = err;
+                }
             }
 
-            const errData = await res.json().catch(() => ({}));
-            const errMsg = errData.error?.message || `HTTP ${res.status}`;
-
-            // Bei temporärer Überlastung (503/429/high demand) das nächste Modell versuchen
-            if (res.status === 503 || res.status === 429 || errMsg.includes('high demand') || errMsg.includes('demand')) {
-                lastError = new Error(errMsg);
-                continue;
-            }
-
-            throw new Error(errMsg);
-
-        } catch (err) {
-            clearTimeout(timeoutId);
-            if (err.name === 'AbortError') {
-                lastError = new Error('Zeitüberschreitung beim Aufruf der KI-Schnittstelle.');
-                continue;
-            }
-            lastError = err;
+            throw lastError || new Error('Keines der verfügbaren KI-Modelle konnte die Anfrage verarbeiten.');
         }
-    }
-
-    throw lastError || new Error('Keines der verfügbaren KI-Modelle konnte die Anfrage verarbeiten.');
-}
 
         async function callOpenAiApi(apiKey, prompt, payload) {
             const url = 'https://api.openai.com/v1/chat/completions';
@@ -958,6 +973,7 @@ Wichtig: Gib AUSSCHLIESSLICH ein gültiges JSON-Objekt im exakt gleichen Format 
                 showStatus('Bitte wähle eine gültige .svg Datei aus', 'error');
                 return;
             }
+            currentFileNameBase = file.name.replace(/\.svg$/i, '');
             const reader = new FileReader();
             reader.onload = (e) => loadSvgString(e.target.result);
             reader.readAsText(file);
@@ -986,12 +1002,41 @@ Wichtig: Gib AUSSCHLIESSLICH ein gültiges JSON-Objekt im exakt gleichen Format 
                 buildFormEditor();
                 resetView();
 
+                // Berechne automatisch die Bounding Box der sichtbaren Grafik-Inhalte
+                cropRect = getContentBBox();
+
                 showStatus('SVG erfolgreich geladen');
 
             } catch (err) {
                 console.error(err);
                 showStatus('Fehler beim Verarbeiten des SVGs', 'error');
             }
+        }
+
+        function getContentBBox() {
+            try {
+                const svgEl = svgContainer.querySelector('svg');
+                if (svgEl && typeof svgEl.getBBox === 'function') {
+                    const bbox = svgEl.getBBox();
+                    if (bbox && bbox.width > 0 && bbox.height > 0) {
+                        const pad = 12;
+                        let x = Math.floor(bbox.x - pad);
+                        let y = Math.floor(bbox.y - pad);
+                        let w = Math.ceil(bbox.width + pad * 2);
+                        let h = Math.ceil(bbox.height + pad * 2);
+
+                        x = Math.max(originalSvgBounds.x, x);
+                        y = Math.max(originalSvgBounds.y, y);
+                        w = Math.min(originalSvgBounds.w - (x - originalSvgBounds.x), w);
+                        h = Math.min(originalSvgBounds.h - (y - originalSvgBounds.y), h);
+
+                        return { x, y, w, h };
+                    }
+                }
+            } catch (e) {
+                console.warn('Inhaltsbereich konnte nicht automatisch berechnet werden:', e);
+            }
+            return { ...originalSvgBounds };
         }
 
         function parseOriginalDimensions(svgRoot) {
@@ -1260,16 +1305,18 @@ Wichtig: Gib AUSSCHLIESSLICH ein gültiges JSON-Objekt im exakt gleichen Format 
             const blob = new Blob([xmlString], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             
+            const fileName = isCropActive ? `${currentFileNameBase}-cropped.svg` : `${currentFileNameBase}.svg`;
+
             const a = document.createElement('a');
             a.href = url;
-            a.download = isCropActive ? 'edited-graphic-cropped.svg' : 'edited-graphic.svg';
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
             triggerButtonFeedback(btnDownloadSvg, '<i class="fa-solid fa-check"></i> Gespeichert!');
-            showStatus('SVG erfolgreich heruntergeladen');
+            showStatus(`SVG als "${fileName}" heruntergeladen`);
         }
 
         function downloadPng() {
@@ -1297,15 +1344,17 @@ Wichtig: Gib AUSSCHLIESSLICH ein gültiges JSON-Objekt im exakt gleichen Format 
 
                 try {
                     const pngData = canvas.toDataURL('image/png');
+                    const fileName = isCropActive ? `${currentFileNameBase}-cropped.png` : `${currentFileNameBase}.png`;
+
                     const a = document.createElement('a');
                     a.href = pngData;
-                    a.download = isCropActive ? 'edited-graphic-cropped.png' : 'edited-graphic.png';
+                    a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
 
                     triggerButtonFeedback(btnDownloadPng, '<i class="fa-solid fa-check"></i> Gespeichert!');
-                    showStatus('PNG erfolgreich heruntergeladen');
+                    showStatus(`PNG als "${fileName}" heruntergeladen`);
                 } catch (e) {
                     console.error(e);
                     showStatus('Fehler beim Erstellen des PNGs', 'error');
